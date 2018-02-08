@@ -10,6 +10,8 @@ using namespace std;
 const bool NORMALISE = true;
 const uint PRECISION = 6;
 
+uint KMER_LEN;
+
 unordered_map <string, vector<uint>> counted_kmers;
 uint counter_index = 0;
 vector<uint> totals;
@@ -20,7 +22,6 @@ void count_kmer(const string * kmer_p) {
         counted_kmers[kmer].push_back(0);
     }
     counted_kmers[kmer][counter_index]++;
-    totals[counter_index]++;
 }
 
 void output_kmer_counts() {
@@ -31,7 +32,7 @@ void output_kmer_counts() {
             
             cout << "\t";
             if (NORMALISE) {
-                cout << fixed << setprecision(PRECISION) << count / (double)totals[counter_index];
+                cout << fixed << setprecision(PRECISION) << count * KMER_LEN / (double)totals[counter_index];
             } else {
                 cout << count;
             }
@@ -49,7 +50,7 @@ int main(int argc, char* argv[]) {
 
     if (!file.is_open()) throw runtime_error("Cannot open file.");
 
-    const uint KMER_LEN = atoi(argv[2]);
+    KMER_LEN = atoi(argv[2]);
 
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
@@ -77,6 +78,8 @@ int main(int argc, char* argv[]) {
                     kmer_buffer[i].clear();
                 }
             }
+
+            totals[counter_index]++;
 
             if (max_buffer_index < KMER_LEN) max_buffer_index++;
         }
