@@ -60,7 +60,9 @@ int main(int argc, char* argv[]) {
     chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
     cerr << time_span.count() << 's' << endl;
 
+    cerr <<  "Writing results...";
     output_kmer_counts();
+    cerr << "DONE" << endl;
 
     return 0;
 }
