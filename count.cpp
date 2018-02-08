@@ -18,9 +18,11 @@ void count_kmer(const string * kmer_p) {
 }
 
 void output_kmer_counts() {
-    for (const auto &pair : counted_kmers) {
-        cout << pair.first;
-        for (const uint count : pair.second) cout << "\t" << count;
+    for (const auto &keyval : counted_kmers) {
+        cout << keyval.first;
+        for (uint i = 0; i <= counter_index; i++) {
+            cout << "\t" << (i < keyval.second.size() ? keyval.second[i] : 0);
+        }
         cout << endl;
     }
 }
