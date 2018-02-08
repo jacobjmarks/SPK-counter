@@ -3,11 +3,16 @@
 #include <chrono>
 #include <unordered_map>
 #include <vector>
+#include <iomanip>
 
 using namespace std;
 
+const bool NORMALISE = true;
+const uint PRECISION = 6;
+
 unordered_map <string, vector<uint>> counted_kmers;
 uint counter_index = 0;
+vector<uint> totals;
 
 void count_kmer(const string * kmer_p) {
     const string kmer = *kmer_p;
@@ -15,13 +20,21 @@ void count_kmer(const string * kmer_p) {
         counted_kmers[kmer].push_back(0);
     }
     counted_kmers[kmer][counter_index]++;
+    totals[counter_index]++;
 }
 
 void output_kmer_counts() {
     for (const auto &keyval : counted_kmers) {
         cout << keyval.first;
         for (uint i = 0; i <= counter_index; i++) {
-            cout << "\t" << (i < keyval.second.size() ? keyval.second[i] : 0);
+            uint count = (i < keyval.second.size() ? keyval.second[i] : 0);
+            
+            cout << "\t";
+            if (NORMALISE) {
+                cout << fixed << setprecision(PRECISION) << count / (double)totals[counter_index];
+            } else {
+                cout << count;
+            }
         }
         cout << endl;
     }
@@ -46,6 +59,7 @@ int main(int argc, char* argv[]) {
         if (ch == '>') {
             if (file.tellg() != 1) counter_index++;
             max_buffer_index = 1;
+            totals.push_back(0);
 
             for (uint i = 0; i < KMER_LEN; i++) {
                 kmer_buffer[i].clear();
