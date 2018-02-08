@@ -2,15 +2,26 @@
 #include <fstream>
 #include <chrono>
 #include <unordered_map>
+#include <vector>
 
 using namespace std;
 
-unordered_map <string, uint> counted_kmers;
+unordered_map <string, vector<uint>> counted_kmers;
+uint counter_index = 0;
+
+void count_kmer(const string * kmer_p) {
+    const string kmer = *kmer_p;
+    for (uint i = counted_kmers[kmer].size(); i <= counter_index; i++) {
+        counted_kmers[kmer].push_back(0);
+    }
+    counted_kmers[kmer][counter_index]++;
+}
 
 void output_kmer_counts() {
-    unordered_map<string, uint>::const_iterator it = counted_kmers.begin();
-    for (; it != counted_kmers.end(); it++) {
-        cout << it->first << " " << it->second << endl;
+    for (const auto &pair : counted_kmers) {
+        cout << pair.first;
+        for (const uint count : pair.second) cout << "\t" << count;
+        cout << endl;
     }
 }
 
@@ -31,13 +42,14 @@ int main(int argc, char* argv[]) {
     char ch;
     while ((ch = file.get()) != EOF) {
         if (ch == '>') {
-            file.ignore(UINT32_MAX, '\n');
+            if (file.tellg() != 1) counter_index++;
+            max_buffer_index = 1;
 
             for (uint i = 0; i < KMER_LEN; i++) {
                 kmer_buffer[i].clear();
             }
 
-            max_buffer_index = 1;
+            file.ignore(UINT32_MAX, '\n');
         } else if (ch == '\n' || ch == '\r') {
             // Skip
         } else {
@@ -45,7 +57,7 @@ int main(int argc, char* argv[]) {
                 kmer_buffer[i] += ch;
 
                 if (kmer_buffer[i].length() == KMER_LEN) {
-                    counted_kmers[kmer_buffer[i]]++;
+                    count_kmer(&kmer_buffer[i]);
                     kmer_buffer[i].clear();
                 }
             }
