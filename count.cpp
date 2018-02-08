@@ -1,53 +1,49 @@
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 using namespace std;
 
-int main(int argc, char * argv[]) {
-    if (argc < 3) {
-        cerr << "PLEASE SPECIFY FILENAME AND KMER LENGTH" << endl;
-        return 1;
-    }
+int main(int argc, char* argv[]) {
+    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
 
     ifstream file;
     file.open(argv[1]);
-    if (!file.is_open()) {
-        cerr << "FILE CANNOT BE OPENED" << endl;
-        return 1;
-    }
 
-    file.seekg (0, file.end);
-    const int file_length = file.tellg();
-    file.seekg (0, file.beg);
+    if (!file.is_open()) throw runtime_error("Cannot open file.");
 
-    const int KMER_LEN = atoi(argv[2]);
+    const uint KMER_LEN = atoi(argv[2]);
 
-    while(file.peek() != EOF) {
-        char c;
-        file.get(c);
-        if (c == '>') {
-            while (c != '\n') file.get(c);
+    string kmer_buffer[KMER_LEN];
+    int max_buffer_index = 1;
+
+    char ch;
+    while ((ch = file.get()) != EOF) {
+        if (ch == '>') {
+            file.ignore(UINT32_MAX, '\n');
+
+            for (uint i = 0; i < KMER_LEN; i++) {
+                kmer_buffer[i].clear();
+            }
+
+            max_buffer_index = 1;
+        } else if (ch == '\n' || ch == '\r') {
+            // Skip
         } else {
-            file.putback(c);
-        }
-        
-        char * kmer = new char[KMER_LEN];
-        file.read(kmer, KMER_LEN);
+            for (uint i = 0; i < max_buffer_index; i++) {
+                kmer_buffer[i] += ch;
 
-        bool valid = true;
+                if (kmer_buffer[i].length() == KMER_LEN) {
+                    cout << kmer_buffer[i] << endl;
+                    kmer_buffer[i].clear();
+                }
+            }
 
-        for (int i = 0; i < sizeof(kmer)/sizeof(char); i++) {
-            if (kmer[i] == '\n') valid = false;
-        }
-
-        if (valid) {
-            cout << kmer << endl;
-
-            file.seekg(file.tellg() - KMER_LEN + 1);
-
-            if (file.tellg() + KMER_LEN > file_length) break;
+            if (max_buffer_index < KMER_LEN) max_buffer_index++;
         }
     }
+
+    file.close();
 
     return 0;
 }
