@@ -23,8 +23,6 @@ void output_kmer_counts() {
 }
 
 int main(int argc, char* argv[]) {
-    cerr << "Counting K-mers...";
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
     if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
 
     ifstream file;
@@ -36,6 +34,9 @@ int main(int argc, char* argv[]) {
 
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
+
+    cerr << "Counting K-mers...";
+    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     char ch;
     while ((ch = file.get()) != EOF) {
