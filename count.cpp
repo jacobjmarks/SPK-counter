@@ -4,15 +4,39 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <algorithm>
 
 using namespace std;
 
-const bool NORMALISE = true;
-const uint PRECISION = 6;
+const bool COUNT_CANONICAL = true;
 
 uint KMER_LEN;
 
 unordered_map <string, uint> counted_kmers;
+
+char complement(const char * nucleotide) {
+    switch (*nucleotide) {
+        case 'A': return 'T';
+        case 'C': return 'G';
+        case 'T': return 'A';
+        case 'G': return 'C';
+        default: return *nucleotide;
+    }
+}
+
+void count_kmer(const string * kmer_p) {
+    const string kmer = *kmer_p;
+
+    if (COUNT_CANONICAL) {
+        string kmer_complement;
+        for (int i = KMER_LEN-1; i >= 0; i--) kmer_complement.push_back(complement(&kmer[i]));
+        if (counted_kmers.find(kmer_complement) != counted_kmers.end()) {
+            counted_kmers[kmer_complement]++;
+            return;
+        }
+    }
+    counted_kmers[kmer]++;
+}
 
 void output_kmer_counts() {
     for (const auto &keyval : counted_kmers) {
@@ -51,7 +75,7 @@ int main(int argc, char* argv[]) {
                 kmer_buffer[i] += ch;
 
                 if (kmer_buffer[i].length() == KMER_LEN) {
-                    counted_kmers[kmer_buffer[i]]++;
+                    count_kmer(&kmer_buffer[i]);
                     kmer_buffer[i].clear();
                 }
             }
