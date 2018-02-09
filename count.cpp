@@ -13,8 +13,6 @@ const uint PRECISION = 6;
 uint KMER_LEN;
 
 unordered_map <string, uint> counted_kmers;
-uint counter_index = 0;
-vector<uint> seq_lengths;
 
 void output_kmer_counts() {
     for (const auto &keyval : counted_kmers) {
@@ -41,13 +39,9 @@ int main(int argc, char* argv[]) {
     char ch;
     while ((ch = file.get()) != EOF) {
         if (ch == '>') {
-            if (file.tellg() != 1) counter_index++;
             max_buffer_index = 1;
-            seq_lengths.push_back(0);
 
-            for (uint i = 0; i < KMER_LEN; i++) {
-                kmer_buffer[i].clear();
-            }
+            for (uint i = 0; i < KMER_LEN; i++) kmer_buffer[i].clear();
 
             file.ignore(UINT32_MAX, '\n');
         } else if (ch == '\n' || ch == '\r') {
@@ -61,8 +55,6 @@ int main(int argc, char* argv[]) {
                     kmer_buffer[i].clear();
                 }
             }
-
-            seq_lengths[counter_index]++;
 
             if (max_buffer_index < KMER_LEN) max_buffer_index++;
         }
