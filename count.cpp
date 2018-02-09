@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <pthread.h>
 
 using namespace std;
 
@@ -13,7 +14,15 @@ const string ALPHABET = "ACTG";
 uint KMER_LEN;
 
 unordered_map <string, uint> counted_kmers;
-vector<uint> subseq_indices;
+vector<int> subseq_indices;
+uint subseq_count;
+volatile bool finished = false;
+
+struct thread_data {
+    char * filename;
+    int read_start;
+    int read_stop;
+};
 
 char complement(const char nucleotide) {
     switch (nucleotide) {
@@ -29,12 +38,14 @@ void get_subseq_indices(const char * filename) {
     ifstream file;
     file.open(filename);
 
-    if (!file.is_open) throw runtime_error((string)"Cannot open file: " + filename);
+    if (!file.is_open()) throw runtime_error((string)"Cannot open file: " + filename);
 
     string line;
     while (getline(file, line)) {
-        if (line[0] == '>') subseq_indices.push_back(file.tellg());
-        // if (line[0] == '>') cerr << file.tellg() << endl;
+        if (line[0] == '>') {
+            subseq_indices.push_back(file.tellg());
+            subseq_count++;
+        }
     }
     subseq_indices.push_back(-1);
     file.close();
@@ -52,7 +63,12 @@ void count_kmer(const string * kmer_p) {
     counted_kmers[*kmer_p]++;
 }
 
-void * count_kmers(char * filename, uint read_start, int read_stop) {
+void * count_kmers(void * thread_args) {
+    struct thread_data * args = (struct thread_data *) thread_args;
+    char * filename = (char *) args->filename;
+    int read_start = (int) args->read_start;
+    int read_stop = (int) args->read_stop;
+
     ifstream stream;
     stream.open(filename);
 
@@ -88,6 +104,11 @@ void * count_kmers(char * filename, uint read_start, int read_stop) {
     }
 
     stream.close();
+    subseq_count--;
+
+    if (subseq_count == 0) finished = true;
+
+    pthread_exit(NULL);
 }
 
 void output_kmer_counts() {
@@ -101,14 +122,19 @@ int main(int argc, char* argv[]) {
 
     get_subseq_indices(argv[1]);
 
+    pthread_t threads[subseq_indices.size()];
+
     KMER_LEN = atoi(argv[2]);
 
     cerr << "Counting K-mers...";
     chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     for (uint i = 0; i < subseq_indices.size() - 1; i++) {
-        count_kmers(argv[1], subseq_indices[i], subseq_indices[i+1]);
+        struct thread_data args = { argv[1], subseq_indices[i], subseq_indices[i+1] };
+        pthread_create(&threads[i], NULL, count_kmers, (void *)&args);
     }
+
+    while (!finished);
 
     chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
     chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
