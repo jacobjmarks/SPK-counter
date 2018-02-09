@@ -12,36 +12,18 @@ const uint PRECISION = 6;
 
 uint KMER_LEN;
 
-unordered_map <string, vector<uint>> counted_kmers;
+unordered_map <string, uint> counted_kmers;
 uint counter_index = 0;
-vector<uint> totals;
-
-void count_kmer(const string * kmer_p) {
-    const string kmer = *kmer_p;
-    for (uint i = counted_kmers[kmer].size(); i <= counter_index; i++) {
-        counted_kmers[kmer].push_back(0);
-    }
-    counted_kmers[kmer][counter_index]++;
-}
+vector<uint> seq_lengths;
 
 void output_kmer_counts() {
     for (const auto &keyval : counted_kmers) {
-        cout << keyval.first;
-        for (uint i = 0; i <= counter_index; i++) {
-            uint count = (i < keyval.second.size() ? keyval.second[i] : 0);
-            
-            cout << "\t";
-            if (NORMALISE) {
-                cout << fixed << setprecision(PRECISION) << count * KMER_LEN / (double)totals[counter_index];
-            } else {
-                cout << count;
-            }
-        }
-        cout << endl;
+        cout << keyval.first << "\t" << keyval.second << endl;
     }
 }
 
 int main(int argc, char* argv[]) {
+    cerr << "Counting K-mers...";
     chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
     if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
 
@@ -60,7 +42,7 @@ int main(int argc, char* argv[]) {
         if (ch == '>') {
             if (file.tellg() != 1) counter_index++;
             max_buffer_index = 1;
-            totals.push_back(0);
+            seq_lengths.push_back(0);
 
             for (uint i = 0; i < KMER_LEN; i++) {
                 kmer_buffer[i].clear();
@@ -74,12 +56,12 @@ int main(int argc, char* argv[]) {
                 kmer_buffer[i] += ch;
 
                 if (kmer_buffer[i].length() == KMER_LEN) {
-                    count_kmer(&kmer_buffer[i]);
+                    counted_kmers[kmer_buffer[i]]++;
                     kmer_buffer[i].clear();
                 }
             }
 
-            totals[counter_index]++;
+            seq_lengths[counter_index]++;
 
             if (max_buffer_index < KMER_LEN) max_buffer_index++;
         }
