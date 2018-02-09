@@ -4,12 +4,12 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
-#include <algorithm>
 
 using namespace std;
 
 const bool COUNT_CANONICAL = true;
 
+const string ALPHABET = "ACTG";
 uint KMER_LEN;
 
 unordered_map <string, uint> counted_kmers;
@@ -20,7 +20,7 @@ char complement(const char * nucleotide) {
         case 'C': return 'G';
         case 'T': return 'A';
         case 'G': return 'C';
-        default: return *nucleotide;
+        default: throw runtime_error((string)"Unhandled nucleotide: " + *nucleotide);
     }
 }
 
@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     if (!file.is_open()) throw runtime_error("Cannot open file.");
 
     KMER_LEN = atoi(argv[2]);
-
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
 
@@ -62,14 +61,13 @@ int main(int argc, char* argv[]) {
 
     char ch;
     while ((ch = file.get()) != EOF) {
-        if (ch == '>') {
-            max_buffer_index = 1;
-
-            for (uint i = 0; i < KMER_LEN; i++) kmer_buffer[i].clear();
-
-            file.ignore(UINT32_MAX, '\n');
-        } else if (ch == '\n' || ch == '\r') {
+        if (ch == '\n' || ch == '\r') {
             // Skip
+        } else if (ALPHABET.find(ch) == string::npos) {
+            // Char is not part of nucleotide alphabet, break current kmers
+            if (ch == '>') file.ignore(UINT32_MAX, '\n');
+            max_buffer_index = 1;
+            for (uint i = 0; i < KMER_LEN; i++) kmer_buffer[i].clear();
         } else {
             for (uint i = 0; i < max_buffer_index; i++) {
                 kmer_buffer[i] += ch;
