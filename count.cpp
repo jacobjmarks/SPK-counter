@@ -14,28 +14,26 @@ uint KMER_LEN;
 
 unordered_map <string, uint> counted_kmers;
 
-char complement(const char * nucleotide) {
-    switch (*nucleotide) {
+char complement(const char nucleotide) {
+    switch (nucleotide) {
         case 'A': return 'T';
         case 'C': return 'G';
         case 'T': return 'A';
         case 'G': return 'C';
-        default: throw runtime_error((string)"Unhandled nucleotide: " + *nucleotide);
+        default: throw runtime_error((string)"Unhandled nucleotide: " + nucleotide);
     }
 }
 
 void count_kmer(const string * kmer_p) {
-    const string kmer = *kmer_p;
-
     if (COUNT_CANONICAL) {
         string reverse_complement;
-        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement(&kmer[i]));
+        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement((*kmer_p)[i]));
         if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
             counted_kmers[reverse_complement]++;
             return;
         }
     }
-    counted_kmers[kmer]++;
+    counted_kmers[*kmer_p]++;
 }
 
 void output_kmer_counts() {
