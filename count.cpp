@@ -28,10 +28,10 @@ void count_kmer(const string * kmer_p) {
     const string kmer = *kmer_p;
 
     if (COUNT_CANONICAL) {
-        string kmer_complement;
-        for (int i = KMER_LEN-1; i >= 0; i--) kmer_complement.push_back(complement(&kmer[i]));
-        if (counted_kmers.find(kmer_complement) != counted_kmers.end()) {
-            counted_kmers[kmer_complement]++;
+        string reverse_complement;
+        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement(&kmer[i]));
+        if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
+            counted_kmers[reverse_complement]++;
             return;
         }
     }
