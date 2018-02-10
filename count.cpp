@@ -4,15 +4,15 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <string.h>
 
 using namespace std;
 
-const bool COUNT_CANONICAL = true;
-
 const string ALPHABET = "ACTG";
 uint KMER_LEN;
-
-unordered_map <string, uint> counted_kmers;
+bool COUNT_CANONICAL = false;
+string FILENAME;
+unordered_map <string, uint> COUNTED_KMERS;
 
 char complement(const char nucleotide) {
     switch (nucleotide) {
@@ -28,16 +28,16 @@ void count_kmer(const string * kmer_p) {
     if (COUNT_CANONICAL) {
         string reverse_complement;
         for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement((*kmer_p)[i]));
-        if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
-            counted_kmers[reverse_complement]++;
+        if (COUNTED_KMERS.find(reverse_complement) != COUNTED_KMERS.end()) {
+            COUNTED_KMERS[reverse_complement]++;
             return;
         }
     }
-    counted_kmers[*kmer_p]++;
+    COUNTED_KMERS[*kmer_p]++;
 }
 
 void output_kmer_counts() {
-    for (const auto &keyval : counted_kmers) {
+    for (const auto &keyval : COUNTED_KMERS) {
         cout << keyval.first << "\t" << keyval.second << endl;
     }
 }
@@ -45,12 +45,24 @@ void output_kmer_counts() {
 int main(int argc, char* argv[]) {
     if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
 
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-k") == 0) {
+            KMER_LEN = atoi(argv[i+1]);
+            i++;
+        } else if (strcmp(argv[i], "-C") == 0) {
+            COUNT_CANONICAL = true;
+        } else {
+            FILENAME = argv[i];
+        }
+    }
+
+    if (KMER_LEN == 0) throw invalid_argument("Please specify non-negative kmer length.");
+
     ifstream file;
-    file.open(argv[1]);
+    file.open(FILENAME);
 
     if (!file.is_open()) throw runtime_error("Cannot open file.");
 
-    KMER_LEN = atoi(argv[2]);
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
 
