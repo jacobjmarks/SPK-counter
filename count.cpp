@@ -21,14 +21,18 @@ char complement(const char nucleotide) {
         case 'C': return 'G';
         case 'T': return 'A';
         case 'G': return 'C';
-        default: throw runtime_error((string)"Unhandled nucleotide: " + nucleotide);
+        default: return 0;
     }
 }
 
 void count_kmer(const deque<char> kmer_queue) {
     if (COUNT_CANONICAL) {
         string reverse_complement;
-        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement += complement(kmer_queue[i]);
+        for (int i = KMER_LEN-1; i >= 0; i--) {
+            char c = complement(kmer_queue[i]);
+            if (c == 0) return;
+            reverse_complement += c;
+        }
         if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
             counted_kmers[reverse_complement]++;
             return;
