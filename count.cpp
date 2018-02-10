@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <deque>
 
 using namespace std;
 
@@ -24,16 +25,19 @@ char complement(const char nucleotide) {
     }
 }
 
-void count_kmer(const string * kmer_p) {
+void count_kmer(const deque<char> kmer_queue) {
     if (COUNT_CANONICAL) {
         string reverse_complement;
-        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement((*kmer_p)[i]));
+        for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement += complement(kmer_queue[i]);
         if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
             counted_kmers[reverse_complement]++;
             return;
         }
     }
-    counted_kmers[*kmer_p]++;
+    
+    string kmer;
+    for (uint i = 0; i < KMER_LEN; i++) kmer += kmer_queue[i];
+    counted_kmers[kmer]++;
 }
 
 void output_kmer_counts() {
@@ -51,11 +55,11 @@ int main(int argc, char* argv[]) {
     if (!file.is_open()) throw runtime_error("Cannot open file.");
 
     KMER_LEN = atoi(argv[2]);
-    string kmer_buffer[KMER_LEN];
-    uint max_buffer_index = 1;
 
     cerr << "Counting K-mers...";
     chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+
+    deque<char> kmer_queue;
 
     char ch;
     while ((ch = file.get()) != EOF) {
@@ -64,19 +68,19 @@ int main(int argc, char* argv[]) {
         } else if (ALPHABET.find(ch) == string::npos) {
             // Char is not part of nucleotide alphabet, break current kmers
             if (ch == '>') file.ignore(UINT32_MAX, '\n');
-            max_buffer_index = 1;
-            for (uint i = 0; i < KMER_LEN; i++) kmer_buffer[i].clear();
+            kmer_queue.erase(kmer_queue.begin(), kmer_queue.end());
+
+            char * first_kmer = new char [KMER_LEN];
+            file.read(first_kmer, KMER_LEN);
+
+            for (uint i = 0; i < KMER_LEN; i++) kmer_queue.push_back(first_kmer[i]);
+
+            delete first_kmer;
+            count_kmer(kmer_queue);
         } else {
-            for (uint i = 0; i < max_buffer_index; i++) {
-                kmer_buffer[i] += ch;
-
-                if (kmer_buffer[i].length() == KMER_LEN) {
-                    count_kmer(&kmer_buffer[i]);
-                    kmer_buffer[i].clear();
-                }
-            }
-
-            if (max_buffer_index < KMER_LEN) max_buffer_index++;
+            kmer_queue.pop_front();
+            kmer_queue.push_back(ch);
+            count_kmer(kmer_queue);
         }
     }
 
