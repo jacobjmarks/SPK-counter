@@ -11,7 +11,6 @@ using namespace std;
 const string ALPHABET = "ACTG";
 uint KMER_LEN;
 bool COUNT_CANONICAL = false;
-string FILENAME;
 unordered_map <string, uint> COUNTED_KMERS;
 
 char complement(const char nucleotide) {
@@ -42,32 +41,13 @@ void output_kmer_counts() {
     }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
-
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-k") == 0) {
-            KMER_LEN = atoi(argv[i+1]);
-            i++;
-        } else if (strcmp(argv[i], "-C") == 0) {
-            COUNT_CANONICAL = true;
-        } else {
-            FILENAME = argv[i];
-        }
-    }
-
-    if (KMER_LEN == 0) throw invalid_argument("Please specify non-negative kmer length.");
-
+void process_file(string filename) {
     ifstream file;
-    file.open(FILENAME);
-
-    if (!file.is_open()) throw runtime_error("Cannot open file.");
+    file.open(filename);
+    if (!file.is_open()) throw runtime_error((string)"Cannot open file: " + filename);
 
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
-
-    cerr << "Counting K-mers...";
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     char ch;
     while ((ch = file.get()) != EOF) {
@@ -93,14 +73,41 @@ int main(int argc, char* argv[]) {
     }
 
     file.close();
+}
 
-    chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
-    chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
-    cerr << time_span.count() << 's' << endl;
+int main(int argc, char* argv[]) {
+    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
 
-    cerr <<  "Writing results...";
-    output_kmer_counts();
-    cerr << "DONE" << endl;
+    vector<string> files;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-k") == 0) {
+            KMER_LEN = atoi(argv[i+1]);
+            i++;
+        } else if (strcmp(argv[i], "-C") == 0) {
+            COUNT_CANONICAL = true;
+        } else {
+            files.push_back(argv[i]);
+        }
+    }
+
+    if (KMER_LEN == 0) throw invalid_argument("Please specify non-negative kmer length.");
+
+    for (uint i = 0; i < files.size(); i++) {
+        cerr << files[i] << endl;
+        cerr << "\tCounting K-mers...";
+        chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+
+        process_file(files[i]);
+
+        chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+        chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+        cerr << time_span.count() << 's' << endl;
+
+        cerr <<  "\tWriting results...";
+        output_kmer_counts();
+        cerr << "DONE" << endl;
+    }
 
     return 0;
 }
