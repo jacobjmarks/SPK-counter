@@ -11,7 +11,8 @@ using namespace std;
 const string ALPHABET = "ACTG";
 uint KMER_LEN;
 bool COUNT_CANONICAL = false;
-unordered_map <string, uint> COUNTED_KMERS;
+unordered_map <string, vector<uint>> COUNTED_KMERS;
+uint NUM_FILES = 0;
 
 char complement(const char nucleotide) {
     switch (nucleotide) {
@@ -28,16 +29,25 @@ void count_kmer(const string * kmer_p) {
         string reverse_complement;
         for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement((*kmer_p)[i]));
         if (COUNTED_KMERS.find(reverse_complement) != COUNTED_KMERS.end()) {
-            COUNTED_KMERS[reverse_complement]++;
+            vector<uint> * counts = &COUNTED_KMERS[reverse_complement];
+            while ((*counts).size() < NUM_FILES) (*counts).push_back(0);
+            (*counts)[NUM_FILES-1]++;
             return;
         }
     }
-    COUNTED_KMERS[*kmer_p]++;
+
+    vector<uint> * counts = &COUNTED_KMERS[*kmer_p];
+    while ((*counts).size() < NUM_FILES) (*counts).push_back(0);
+    (*counts)[NUM_FILES-1]++;
 }
 
 void output_kmer_counts() {
     for (const auto &keyval : COUNTED_KMERS) {
-        cout << keyval.first << "\t" << keyval.second << endl;
+        cout << keyval.first;
+        for (uint i = 0; i < NUM_FILES; i ++) {
+            cout << "\t" << (i < keyval.second.size() ? keyval.second[i] : 0);
+        }
+        cout << endl;
     }
 }
 
@@ -46,6 +56,9 @@ void process_file(string filename) {
     file.open(filename);
     if (!file.is_open()) throw runtime_error((string)"Cannot open file: " + filename);
 
+    NUM_FILES++;
+    cout << '\t' << filename;
+    
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
 
@@ -112,11 +125,13 @@ int main(int argc, char* argv[]) {
         chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
         chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
         cerr << time_span.count() << 's' << endl;
-
-        cerr <<  "\tWriting results...";
-        output_kmer_counts();
-        cerr << "DONE" << endl;
     }
+
+    cout << '\n';
+
+    cerr <<  "Writing results...";
+    output_kmer_counts();
+    cerr << "DONE" << endl;
 
     return 0;
 }
