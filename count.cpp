@@ -4,15 +4,15 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <string.h>
 
 using namespace std;
 
-const bool COUNT_CANONICAL = true;
-
 const string ALPHABET = "ACTG";
 uint KMER_LEN;
-
-unordered_map <string, uint> counted_kmers;
+bool COUNT_CANONICAL = false;
+unordered_map <string, vector<uint>> COUNTED_KMERS;
+uint NUM_FILES = 0;
 
 char complement(const char nucleotide) {
     switch (nucleotide) {
@@ -28,34 +28,39 @@ void count_kmer(const string * kmer_p) {
     if (COUNT_CANONICAL) {
         string reverse_complement;
         for (int i = KMER_LEN-1; i >= 0; i--) reverse_complement.push_back(complement((*kmer_p)[i]));
-        if (counted_kmers.find(reverse_complement) != counted_kmers.end()) {
-            counted_kmers[reverse_complement]++;
+        if (COUNTED_KMERS.find(reverse_complement) != COUNTED_KMERS.end()) {
+            vector<uint> * counts = &COUNTED_KMERS[reverse_complement];
+            while ((*counts).size() < NUM_FILES) (*counts).push_back(0);
+            (*counts)[NUM_FILES-1]++;
             return;
         }
     }
-    counted_kmers[*kmer_p]++;
+
+    vector<uint> * counts = &COUNTED_KMERS[*kmer_p];
+    while ((*counts).size() < NUM_FILES) (*counts).push_back(0);
+    (*counts)[NUM_FILES-1]++;
 }
 
 void output_kmer_counts() {
-    for (const auto &keyval : counted_kmers) {
-        cout << keyval.first << "\t" << keyval.second << endl;
+    for (const auto &keyval : COUNTED_KMERS) {
+        cout << keyval.first;
+        for (uint i = 0; i < NUM_FILES; i ++) {
+            cout << "\t" << (i < keyval.second.size() ? keyval.second[i] : 0);
+        }
+        cout << endl;
     }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
-
+void process_file(string filename) {
     ifstream file;
-    file.open(argv[1]);
+    file.open(filename);
+    if (!file.is_open()) throw runtime_error((string)"Cannot open file: " + filename);
 
-    if (!file.is_open()) throw runtime_error("Cannot open file.");
-
-    KMER_LEN = atoi(argv[2]);
+    NUM_FILES++;
+    cout << '\t' << filename;
+    
     string kmer_buffer[KMER_LEN];
     uint max_buffer_index = 1;
-
-    cerr << "Counting K-mers...";
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
 
     char ch;
     while ((ch = file.get()) != EOF) {
@@ -81,10 +86,48 @@ int main(int argc, char* argv[]) {
     }
 
     file.close();
+}
 
-    chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
-    chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
-    cerr << time_span.count() << 's' << endl;
+int main(int argc, char* argv[]) {
+    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
+
+    vector<string> files;
+
+    for (int i = 1; i < argc; i++) {
+        auto arg = [&argv, i](string arg){
+            return !strcmp(argv[i], arg.c_str());
+        };
+
+        if (arg("-k")) {
+            KMER_LEN = atoi(argv[i+1]);
+            if (KMER_LEN < 1) throw invalid_argument("Please specify positive kmer length.");
+            i++;
+            continue;
+        }
+
+        if (arg("-C")) {
+            COUNT_CANONICAL = true;
+            continue;
+        }
+        
+        files.push_back(argv[i]);
+    }
+
+    if (!KMER_LEN) throw invalid_argument("Please specify a kmer length.");
+
+    for (uint i = 0; i < files.size(); i++) {
+        cerr << files[i] << endl;
+        cerr << "\tCounting K-mers...";
+        chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+
+        process_file(files[i]);
+
+        chrono::high_resolution_clock::time_point t2 = chrono::high_resolution_clock::now();
+        chrono::duration<double> time_span = chrono::duration_cast<chrono::duration<double>>(t2 - t1);
+        cerr << time_span.count() << 's' << endl;
+    }
+
+    cout << '\n';
 
     cerr <<  "Writing results...";
     output_kmer_counts();
