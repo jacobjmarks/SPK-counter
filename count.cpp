@@ -81,17 +81,26 @@ int main(int argc, char* argv[]) {
     vector<string> files;
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-k") == 0) {
+        auto arg = [&argv, i](string arg){
+            return !strcmp(argv[i], arg.c_str());
+        };
+
+        if (arg("-k")) {
             KMER_LEN = atoi(argv[i+1]);
+            if (KMER_LEN < 1) throw invalid_argument("Please specify positive kmer length.");
             i++;
-        } else if (strcmp(argv[i], "-C") == 0) {
-            COUNT_CANONICAL = true;
-        } else {
-            files.push_back(argv[i]);
+            continue;
         }
+
+        if (arg("-C")) {
+            COUNT_CANONICAL = true;
+            continue;
+        }
+        
+        files.push_back(argv[i]);
     }
 
-    if (KMER_LEN == 0) throw invalid_argument("Please specify non-negative kmer length.");
+    if (!KMER_LEN) throw invalid_argument("Please specify a kmer length.");
 
     for (uint i = 0; i < files.size(); i++) {
         cerr << files[i] << endl;
