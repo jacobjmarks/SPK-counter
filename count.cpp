@@ -89,7 +89,15 @@ void process_file(string filename) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) throw invalid_argument("Please specify filename and kmer length.");
+    auto usage = [&argv](string message){
+        cerr << message << endl;
+        fprintf(stderr, "Usage: %s -k kmer_len [-C] fileA [fileB ...]\n", argv[0]);
+        fprintf(stderr, "  -k kmer_len : Kmer length as positive nonzero integer.\n");
+        fprintf(stderr, "  -C          : Count canonical kmers.\n");
+        return 1;
+    };
+
+    if (argc < 3) return usage("Not enough arguments!");
 
     vector<string> files;
 
@@ -99,9 +107,10 @@ int main(int argc, char* argv[]) {
         };
 
         if (arg("-k")) {
-            KMER_LEN = atoi(argv[i+1]);
-            if (KMER_LEN < 1) throw invalid_argument("Please specify positive kmer length.");
-            i++;
+            KMER_LEN = atoi(argv[++i]);
+            if (KMER_LEN < 1) {
+                return usage("Bad kmer length!");
+            }
             continue;
         }
 
@@ -113,7 +122,7 @@ int main(int argc, char* argv[]) {
         files.push_back(argv[i]);
     }
 
-    if (!KMER_LEN) throw invalid_argument("Please specify a kmer length.");
+    if (!KMER_LEN) return usage("No kmer length specified!");
 
     for (uint i = 0; i < files.size(); i++) {
         cerr << files[i] << endl;
